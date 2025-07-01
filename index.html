@@ -1,105 +1,145 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <title>Dienstplan – OMSI 2 RP</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      background-color: #f2f2f2;
-      padding: 20px;
-    }
-    h1 {
-      color: #333;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-      background-color: #fff;
-    }
-    th, td {
-      padding: 10px;
-      border: 1px solid #ccc;
-      text-align: left;
-    }
-    th {
-      background-color: #0077cc;
-      color: white;
-    }
-    button {
-      margin-top: 20px;
-      padding: 10px 15px;
-      font-size: 16px;
-      background-color: #0077cc;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #005fa3;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dienstplan Übersicht mit Fahrer-Update</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; }
+  button { margin: 5px 10px 10px 0; padding: 8px 16px; cursor: pointer; }
+  table { border-collapse: collapse; width: 100%; margin-top: 15px; }
+  th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+  th { background-color: #f4f4f4; }
+</style>
 </head>
 <body>
-  <h1>Dienstplan – OMSI 2 Roleplay</h1>
 
-  <button onclick="aktualisiereBusfahrer()">🔁 Dienste aktualisieren</button>
+<h1>Dienstplan Übersicht</h1>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Dienstnummer</th>
-        <th>Zeit</th>
-        <th>Linie</th>
-        <th>Busfahrer</th>
-      </tr>
-    </thead>
-    <tbody id="dienstTabelle">
-      <!-- Inhalte werden per JS eingefügt -->
-    </tbody>
-  </table>
+<div>
+  <button onclick="showDienste('schule')">Mo-Fr Schule</button>
+  <button onclick="showDienste('ferien')">Mo-Fr Ferien</button>
+  <button onclick="showDienste('samstag')">Samstag</button>
+  <button onclick="showDienste('sonntag')">Sonntag</button>
+  <button onclick="updateFahrer()">Busfahrer aktualisieren</button>
+</div>
 
-  <script>
-    const dienste = [
-      { dienstnummer: "241/1", zeit: "06:30–13:15", linie: "136, 245" },
-      { dienstnummer: "325/3", zeit: "13:30–20:00", linie: "M37, X10" },
-      { dienstnummer: "502/2", zeit: "20:15–01:30", linie: "X34, N7" },
-      { dienstnummer: "128/5", zeit: "04:45–11:30", linie: "245, 101" }
-    ];
+<table id="dienstTabelle">
+  <thead>
+    <tr>
+      <th>Dienst</th>
+      <th>Fahrzeug</th>
+      <th>Busfahrer</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- Daten kommen hier rein -->
+  </tbody>
+</table>
 
-    const busfahrerNamen = ["Tim", "Luca", "Selin", "Jannis", "Ben", "Mia", "Noah", "Leon"];
+<script>
+// Fahrernamen-Liste
+const fahrernamen = ["Müller", "Schmidt", "Schneider", "Fischer", "Weber", "Meyer", "Wagner", "Koch", "Neumann", "Schulz"];
 
-    function zufaelligNamenVergeben() {
-      const shuffled = [...busfahrerNamen].sort(() => Math.random() - 0.5);
-      return dienste.map((dienst, i) => ({
-        ...dienst,
-        busfahrer: shuffled[i % shuffled.length]
-      }));
-    }
+// Dienste-Daten mit Fahrzeugtyp, soweit bekannt
+const dienste = {
+  schule: [
+    { dienst: "4101", fahrzeug: "10m" },
+    { dienst: "4102", fahrzeug: "–" },
+    { dienst: "4201", fahrzeug: "18m" },
+    { dienst: "4202", fahrzeug: "15m" },
+    { dienst: "4203", fahrzeug: "–" },
+    { dienst: "4204", fahrzeug: "–" },
+    { dienst: "4401", fahrzeug: "18m" },
+    { dienst: "4402", fahrzeug: "18m" },
+    { dienst: "4403", fahrzeug: "–" },
+    { dienst: "4404", fahrzeug: "–" },
+    { dienst: "4405", fahrzeug: "–" },
+    { dienst: "4406", fahrzeug: "–" },
+    { dienst: "4407", fahrzeug: "–" },
+    { dienst: "4408", fahrzeug: "–" },
+    { dienst: "4409", fahrzeug: "–" }
+  ],
+  ferien: [
+    { dienst: "4501", fahrzeug: "–" },
+    { dienst: "4502", fahrzeug: "–" },
+    { dienst: "4503", fahrzeug: "–" },
+    { dienst: "4504", fahrzeug: "–" },
+    { dienst: "4505", fahrzeug: "–" },
+    { dienst: "4506", fahrzeug: "–" },
+    { dienst: "4507", fahrzeug: "–" },
+    { dienst: "4508", fahrzeug: "–" },
+    { dienst: "4509", fahrzeug: "–" },
+    { dienst: "4510", fahrzeug: "–" },
+    { dienst: "4601", fahrzeug: "–" },
+    { dienst: "4602", fahrzeug: "10m" },
+    { dienst: "4701", fahrzeug: "–" },
+    { dienst: "4702", fahrzeug: "–" }
+  ],
+  samstag: [
+    { dienst: "4561", fahrzeug: "–" },
+    { dienst: "4562", fahrzeug: "–" },
+    { dienst: "4563", fahrzeug: "–" },
+    { dienst: "4564", fahrzeug: "–" },
+    { dienst: "4565", fahrzeug: "–" },
+    { dienst: "4566", fahrzeug: "–" },
+    { dienst: "4661", fahrzeug: "–" },
+    { dienst: "4662", fahrzeug: "10m" },
+    { dienst: "4761", fahrzeug: "–" }
+  ],
+  sonntag: [
+    { dienst: "4571", fahrzeug: "–" },
+    { dienst: "4572", fahrzeug: "–" },
+    { dienst: "4573", fahrzeug: "–" },
+    { dienst: "4574", fahrzeug: "–" },
+    { dienst: "4671", fahrzeug: "–" },
+    { dienst: "4771", fahrzeug: "–" }
+  ]
+};
 
-    function zeigeDienste(dienstListe) {
-      const tabelle = document.getElementById("dienstTabelle");
-      tabelle.innerHTML = "";
-      dienstListe.forEach(d => {
-        const row = `<tr>
-          <td>${d.dienstnummer}</td>
-          <td>${d.zeit}</td>
-          <td>${d.linie}</td>
-          <td>${d.busfahrer}</td>
-        </tr>`;
-        tabelle.innerHTML += row;
-      });
-    }
+// Aktuell angezeigter Diensttyp
+let aktuellerTyp = "schule";
 
-    function aktualisiereBusfahrer() {
-      const neueDienste = zufaelligNamenVergeben();
-      zeigeDienste(neueDienste);
-    }
+// Funktion, um den aktuellen Datensatz mit zufälligen Fahrernamen zu versehen
+function assignFahrer(diensteListe) {
+  return diensteListe.map(d => ({
+    dienst: d.dienst,
+    fahrzeug: d.fahrzeug,
+    fahrer: fahrernamen[Math.floor(Math.random() * fahrernamen.length)]
+  }));
+}
 
-    // Direkt beim Laden einmal ausführen
-    aktualisiereBusfahrer();
-  </script>
+// Tabelle rendern
+function renderTable(data) {
+  const tbody = document.querySelector("#dienstTabelle tbody");
+  tbody.innerHTML = "";
+  data.forEach(e => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${e.dienst}</td>
+      <td>${e.fahrzeug}</td>
+      <td>${e.fahrer}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// Dienste anzeigen mit Fahrernamen
+function showDienste(typ) {
+  aktuellerTyp = typ;
+  const mitFahrern = assignFahrer(dienste[typ]);
+  renderTable(mitFahrern);
+}
+
+// Fahrer aktualisieren für aktuellen Typ
+function updateFahrer() {
+  showDienste(aktuellerTyp);
+}
+
+// Initial anzeigen
+showDienste(aktuellerTyp);
+
+</script>
+
 </body>
 </html>
