@@ -2,35 +2,104 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <title>Dienste – OMSI 2 RP</title>
+  <title>Dienstplan – OMSI 2 RP</title>
   <style>
-    body { font-family: sans-serif; background: #f3f3f3; padding: 20px; }
-    table { border-collapse: collapse; width: 100%; background: white; }
-    th, td { padding: 10px; border: 1px solid #ccc; text-align: left; }
-    th { background: #0077cc; color: white; }
+    body {
+      font-family: sans-serif;
+      background-color: #f2f2f2;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background-color: #fff;
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #ccc;
+      text-align: left;
+    }
+    th {
+      background-color: #0077cc;
+      color: white;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 15px;
+      font-size: 16px;
+      background-color: #0077cc;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #005fa3;
+    }
   </style>
 </head>
 <body>
-  <h1>Dienstplan – OMSI 2 RP</h1>
+  <h1>Dienstplan – OMSI 2 Roleplay</h1>
+
+  <button onclick="aktualisiereBusfahrer()">🔁 Dienste aktualisieren</button>
+
   <table>
-    <tr>
-      <th>Dienstnummer</th>
-      <th>Busfahrer</th>
-      <th>Zeit</th>
-      <th>Linie</th>
-    </tr>
-    <tr>
-      <td>241/1</td>
-      <td>Tim Busfahrer</td>
-      <td>06:30–13:15</td>
-      <td>136, 245</td>
-    </tr>
-    <tr>
-      <td>325/3</td>
-      <td>Luca RP</td>
-      <td>13:30–20:00</td>
-      <td>M37, X10</td>
-    </tr>
+    <thead>
+      <tr>
+        <th>Dienstnummer</th>
+        <th>Zeit</th>
+        <th>Linie</th>
+        <th>Busfahrer</th>
+      </tr>
+    </thead>
+    <tbody id="dienstTabelle">
+      <!-- Inhalte werden per JS eingefügt -->
+    </tbody>
   </table>
+
+  <script>
+    const dienste = [
+      { dienstnummer: "241/1", zeit: "06:30–13:15", linie: "136, 245" },
+      { dienstnummer: "325/3", zeit: "13:30–20:00", linie: "M37, X10" },
+      { dienstnummer: "502/2", zeit: "20:15–01:30", linie: "X34, N7" },
+      { dienstnummer: "128/5", zeit: "04:45–11:30", linie: "245, 101" }
+    ];
+
+    const busfahrerNamen = ["Tim", "Luca", "Selin", "Jannis", "Ben", "Mia", "Noah", "Leon"];
+
+    function zufaelligNamenVergeben() {
+      const shuffled = [...busfahrerNamen].sort(() => Math.random() - 0.5);
+      return dienste.map((dienst, i) => ({
+        ...dienst,
+        busfahrer: shuffled[i % shuffled.length]
+      }));
+    }
+
+    function zeigeDienste(dienstListe) {
+      const tabelle = document.getElementById("dienstTabelle");
+      tabelle.innerHTML = "";
+      dienstListe.forEach(d => {
+        const row = `<tr>
+          <td>${d.dienstnummer}</td>
+          <td>${d.zeit}</td>
+          <td>${d.linie}</td>
+          <td>${d.busfahrer}</td>
+        </tr>`;
+        tabelle.innerHTML += row;
+      });
+    }
+
+    function aktualisiereBusfahrer() {
+      const neueDienste = zufaelligNamenVergeben();
+      zeigeDienste(neueDienste);
+    }
+
+    // Direkt beim Laden einmal ausführen
+    aktualisiereBusfahrer();
+  </script>
 </body>
 </html>
