@@ -1,105 +1,391 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <title>Dienstplan – OMSI 2 RP</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      background-color: #f2f2f2;
-      padding: 20px;
-    }
-    h1 {
-      color: #333;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-      background-color: #fff;
-    }
-    th, td {
-      padding: 10px;
-      border: 1px solid #ccc;
-      text-align: left;
-    }
-    th {
-      background-color: #0077cc;
-      color: white;
-    }
-    button {
-      margin-top: 20px;
-      padding: 10px 15px;
-      font-size: 16px;
-      background-color: #0077cc;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #005fa3;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dienstplan Übersicht - Mehrere Orte</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; }
+  select, button { margin: 5px 10px 10px 0; padding: 8px 16px; cursor: pointer; }
+  table { border-collapse: collapse; width: 100%; margin-top: 15px; }
+  th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+  th { background-color: #f4f4f4; }
+  #filterButtons button { margin-bottom: 5px; }
+</style>
 </head>
 <body>
-  <h1>Dienstplan – OMSI 2 Roleplay</h1>
 
-  <button onclick="aktualisiereBusfahrer()">🔁 Dienste aktualisieren</button>
+<h1>Dienstplan Übersicht</h1>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Dienstnummer</th>
-        <th>Zeit</th>
-        <th>Linie</th>
-        <th>Busfahrer</th>
-      </tr>
-    </thead>
-    <tbody id="dienstTabelle">
-      <!-- Inhalte werden per JS eingefügt -->
-    </tbody>
-  </table>
+<label for="ortSelect"><strong>Ort wählen:</strong></label>
+<select id="ortSelect" onchange="updateFilterButtons()">
+  <option value="lahnau">Lahnau</option>
+  <option value="kerbelburg">Kerbelburg</option>
+  <option value="nvv">NVV</option>
+  <option value="xbus">X-Bus</option>
+</select>
 
-  <script>
-    const dienste = [
-      { dienstnummer: "241/1", zeit: "06:30–13:15", linie: "136, 245" },
-      { dienstnummer: "325/3", zeit: "13:30–20:00", linie: "M37, X10" },
-      { dienstnummer: "502/2", zeit: "20:15–01:30", linie: "X34, N7" },
-      { dienstnummer: "128/5", zeit: "04:45–11:30", linie: "245, 101" }
-    ];
+<div id="filterButtons" style="margin-top:10px;"></div>
 
-    const busfahrerNamen = ["Tim", "Luca", "Selin", "Jannis", "Ben", "Mia", "Noah", "Leon"];
+<button onclick="updateFahrer()">Busfahrer & Wagen aktualisieren</button>
 
-    function zufaelligNamenVergeben() {
-      const shuffled = [...busfahrerNamen].sort(() => Math.random() - 0.5);
-      return dienste.map((dienst, i) => ({
-        ...dienst,
-        busfahrer: shuffled[i % shuffled.length]
-      }));
-    }
+<table id="dienstTabelle">
+  <thead>
+    <tr>
+      <th>Dienst</th>
+      <th>Fahrzeug</th>
+      <th>Busfahrer</th>
+      <th>Wagennummer</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
 
-    function zeigeDienste(dienstListe) {
-      const tabelle = document.getElementById("dienstTabelle");
-      tabelle.innerHTML = "";
-      dienstListe.forEach(d => {
-        const row = `<tr>
-          <td>${d.dienstnummer}</td>
-          <td>${d.zeit}</td>
-          <td>${d.linie}</td>
-          <td>${d.busfahrer}</td>
-        </tr>`;
-        tabelle.innerHTML += row;
-      });
-    }
+<script>
+// Fahrernamen-Liste
+const fahrernamen = ["W. Müller", "R. Schmidt", "P. Schneider", "M. Hoch", "P. Engel", "S. Kästner", "E. Früh", "K. Reiniger", "D. Pfeiffer", "P. Lauf", "M. Fath", "M. Zimmermann", "E. Brandl", "L. Hinze", "S. Schmid", "N. Förster", "M. Pfeiffer", "U. Möller", "U. Nagel", "K. Ackermann", "A. Mansour", "S. Shamoun", "N. Morcos", "M. Orság", "D. Kvasnička", "B. Lučić", "E. Timayev", "J. Gomes", "M. Villeneuve", "T. Hanski", "I. Pinto", "N. Sơn", "L. Pokrovskaya", "M. Gamgee"];
 
-    function aktualisiereBusfahrer() {
-      const neueDienste = zufaelligNamenVergeben();
-      zeigeDienste(neueDienste);
-    }
+// Wagengruppen
+const wagen18m = [39,40,41,47,48,49,55,56];
+const wagen15m = [28,29,36,37,38];
+const wagen12m = [];
+for(let i=1; i<=66; i++) {
+  if(!wagen18m.includes(i) && !wagen15m.includes(i)) wagen12m.push(i);
+}
 
-    // Direkt beim Laden einmal ausführen
-    aktualisiereBusfahrer();
-  </script>
+// Datenstruktur Ort -> Filter -> Liste von Diensten
+const dienste = {
+  lahnau: {
+    schule: [
+      { dienst: "4101", fahrzeug: "10m" },
+      { dienst: "4102", fahrzeug: "–" },
+      { dienst: "4201", fahrzeug: "18m" },
+      { dienst: "4202", fahrzeug: "15m" },
+      { dienst: "4203", fahrzeug: "–" },
+      { dienst: "4204", fahrzeug: "–" },
+      { dienst: "4401", fahrzeug: "18m" },
+      { dienst: "4402", fahrzeug: "18m" },
+      { dienst: "4403", fahrzeug: "–" },
+      { dienst: "4404", fahrzeug: "–" },
+      { dienst: "4405", fahrzeug: "–" },
+      { dienst: "4406", fahrzeug: "–" },
+      { dienst: "4407", fahrzeug: "–" },
+      { dienst: "4408", fahrzeug: "–" },
+      { dienst: "4409", fahrzeug: "–" }
+    ],
+    ferien: [
+      { dienst: "4501", fahrzeug: "–" },
+      { dienst: "4502", fahrzeug: "–" },
+      { dienst: "4503", fahrzeug: "–" },
+      { dienst: "4504", fahrzeug: "–" },
+      { dienst: "4505", fahrzeug: "–" },
+      { dienst: "4506", fahrzeug: "–" },
+      { dienst: "4507", fahrzeug: "–" },
+      { dienst: "4508", fahrzeug: "–" },
+      { dienst: "4509", fahrzeug: "–" },
+      { dienst: "4510", fahrzeug: "–" },
+      { dienst: "4601", fahrzeug: "–" },
+      { dienst: "4602", fahrzeug: "10m" },
+      { dienst: "4701", fahrzeug: "–" },
+      { dienst: "4702", fahrzeug: "–" }
+    ],
+    samstag: [
+      { dienst: "4561", fahrzeug: "–" },
+      { dienst: "4562", fahrzeug: "–" },
+      { dienst: "4563", fahrzeug: "–" },
+      { dienst: "4564", fahrzeug: "–" },
+      { dienst: "4565", fahrzeug: "–" },
+      { dienst: "4566", fahrzeug: "–" },
+      { dienst: "4661", fahrzeug: "–" },
+      { dienst: "4662", fahrzeug: "10m" },
+      { dienst: "4761", fahrzeug: "–" }
+    ],
+    sonntag: [
+      { dienst: "4571", fahrzeug: "–" },
+      { dienst: "4572", fahrzeug: "–" },
+      { dienst: "4573", fahrzeug: "–" },
+      { dienst: "4574", fahrzeug: "–" },
+      { dienst: "4671", fahrzeug: "–" },
+      { dienst: "4771", fahrzeug: "–" }
+    ]
+  },
+  kerbelburg: {
+    samstag: [
+      { dienst: "Felsbrücken D61", fahrzeug: "–" },
+      { dienst: "Felsbrücken D62", fahrzeug: "–" },
+      { dienst: "Felsbrücken D63", fahrzeug: "–" },
+      { dienst: "Felsbrücken D64", fahrzeug: "–" },
+      { dienst: "Großrossbach D61", fahrzeug: "–" },
+      { dienst: "Großrossbach D62", fahrzeug: "–" },
+      { dienst: "Großrossbach D63", fahrzeug: "–" },
+      { dienst: "Großrossbach D64", fahrzeug: "–" }
+    ],
+    sonntag_feiertag: [
+      { dienst: "Weidenkopf D71 (mit X-Bus)", fahrzeug: "–" },
+      { dienst: "Großrossbach D71", fahrzeug: "–" },
+      { dienst: "Felsbrücken D71", fahrzeug: "–" }
+    ],
+    ferien_mo_fr: [
+      { dienst: "Großrossbach D1", fahrzeug: "–" },
+      { dienst: "Großrossbach D2", fahrzeug: "–" },
+      { dienst: "Felsbrücken D1", fahrzeug: "–" },
+      { dienst: "Felsbrücken D2", fahrzeug: "–" },
+      { dienst: "Felsbrücken D3", fahrzeug: "–" },
+      { dienst: "Felsbrücken D4", fahrzeug: "–" },
+      { dienst: "Großrossbach D3", fahrzeug: "–" },
+      { dienst: "Großrossbach D4", fahrzeug: "–" },
+      { dienst: "Großrossbach D5", fahrzeug: "–" },
+      { dienst: "Großrossbach D6", fahrzeug: "–" },
+      { dienst: "Felsbrücken D5", fahrzeug: "–" },
+      { dienst: "Felsbrücken D6", fahrzeug: "–" }
+    ],
+    schultage_mo_fr: [
+      { dienst: "Großrossbach D11", fahrzeug: "–" },
+      { dienst: "Großrossbach D12", fahrzeug: "–" },
+      { dienst: "Felsbrücken D11", fahrzeug: "15m" },
+      { dienst: "Felsbrücken D12", fahrzeug: "–" },
+      { dienst: "Felsbrücken D13", fahrzeug: "–" },
+      { dienst: "Großrossbach D13", fahrzeug: "–" },
+      { dienst: "Großrossbach D14", fahrzeug: "–" },
+      { dienst: "Großrossbach D15", fahrzeug: "–" },
+      { dienst: "Großrossbach D16", fahrzeug: "–" },
+      { dienst: "Felsbrücken D14", fahrzeug: "–" },
+      { dienst: "Felsbrücken D15", fahrzeug: "–" },
+      { dienst: "Großrossbach D17", fahrzeug: "15m" },
+      { dienst: "Felsbrücken D16", fahrzeug: "15m" },
+      { dienst: "Felsbrücken D17", fahrzeug: "–" }
+    ]
+  },
+  nvv: {
+    sonntag_feiertag: [
+      { dienst: "541/71", fahrzeug: "–" },
+      { dienst: "542/71", fahrzeug: "–" }
+    ],
+    samstag: [
+      { dienst: "541/61", fahrzeug: "–" },
+      { dienst: "542/61", fahrzeug: "–" }
+    ],
+    schultage_mo_do: [
+      { dienst: "541/1", fahrzeug: "–" },
+      { dienst: "542/1", fahrzeug: "–" }
+    ],
+    ferien_mo_do: [
+      { dienst: "541/31", fahrzeug: "–" },
+      { dienst: "542/31", fahrzeug: "–" }
+    ],
+    ferien_mo_fr: [
+      { dienst: "541/32", fahrzeug: "–" },
+      { dienst: "542/32", fahrzeug: "–" }
+    ],
+    ferien_freitag: [
+      { dienst: "541/51", fahrzeug: "–" },
+      { dienst: "542/51", fahrzeug: "–" }
+    ],
+    schultage_freitag: [
+      { dienst: "541/11", fahrzeug: "–" },
+      { dienst: "542/11", fahrzeug: "–" }
+    ],
+    schultage_mo_fr: [
+      { dienst: "541/2", fahrzeug: "–" },
+      { dienst: "542/2", fahrzeug: "–" }
+    ],
+    schultage_bkom_mo_fr: [
+      { dienst: "541/91", fahrzeug: "B-KOM" },
+      { dienst: "542/91", fahrzeug: "B-KOM" }
+    ],
+    schultage_gkom_mo_fr: [
+      { dienst: "541/21", fahrzeug: "G-KOM" },
+      { dienst: "542/21", fahrzeug: "G-KOM" }
+    ]
+  },
+  xbus: {
+    samstag: [
+      { dienst: "Weidenk. Dienst X61", fahrzeug: "–" },
+      { dienst: "Weidenk. Dienst X62", fahrzeug: "–" },
+      { dienst: "Weidenk. Dienst X63", fahrzeug: "–" },
+      { dienst: "Weidenk. Dienst X64", fahrzeug: "–" },
+      { dienst: "Weidenk. Dienst X65", fahrzeug: "–" },
+      { dienst: "Weidenk. Dienst X66", fahrzeug: "–" },
+      { dienst: "Großrossb. Dienst X61", fahrzeug: "–" },
+      { dienst: "Großrossb. Dienst X62", fahrzeug: "–" },
+      { dienst: "Katzbach Dienst X61", fahrzeug: "–" }
+    ],
+    mo_fr: [
+      { dienst: "Weidenkopf Dienst X1", fahrzeug: "–" },
+      { dienst: "Weidenkopf Dienst X2", fahrzeug: "–" },
+      { dienst: "Großrossbach Dienst X1", fahrzeug: "–" },
+      { dienst: "Großrossbach Dienst X2", fahrzeug: "–" },
+      { dienst: "Weidenk. Dienst X5", fahrzeug: "–" },
+      { dienst: "Weidenk. Dienst X6", fahrzeug: "–" },
+      { dienst: "Großrossb. Dienst X3", fahrzeug: "–" },
+      { dienst: "Großrossb. Dienst X4", fahrzeug: "–" }
+    ],
+    mo_do: [
+      { dienst: "Weidenk. Dienst X3", fahrzeug: "–" }
+    ],
+    ferien_mo_fr: [
+      { dienst: "Katzbach Dienst X1", fahrzeug: "–" },
+      { dienst: "Weidenk. Dienst X7", fahrzeug: "–" }
+    ],
+    schultage_mo_fr: [
+      { dienst: "Katzbach Dienst X1", fahrzeug: "–" },
+      { dienst: "Weidenk. Dienst X7", fahrzeug: "15m" }
+    ],
+    freitag: [
+      { dienst: "Weidenk. Dienst X3", fahrzeug: "–" },
+      { dienst: "Weidenk. Dienst X4", fahrzeug: "–" }
+    ]
+  }
+};
+
+// Filter-Bezeichnungen pro Ort (wird dynamisch angezeigt)
+const filterBezeichnungen = {
+  lahnau: {
+    schule: "Mo-Fr Schule",
+    ferien: "Mo-Fr Ferien",
+    samstag: "Samstag",
+    sonntag: "Sonntag"
+  },
+  kerbelburg: {
+    samstag: "Samstag",
+    sonntag_feiertag: "Sonntag & Feiertag",
+    ferien_mo_fr: "Mo-Fr Ferien",
+    schultage_mo_fr: "Mo-Fr Schultage"
+  },
+  nvv: {
+    sonntag_feiertag: "Sonntag & Feiertag",
+    samstag: "Samstag",
+    schultage_mo_do: "Mo-Do Schultage",
+    ferien_mo_do: "Mo-Do Ferien",
+    ferien_mo_fr: "Mo-Fr Ferien",
+    ferien_freitag: "Freitag Ferien",
+    schultage_freitag: "Freitag Schultage",
+    schultage_mo_fr: "Mo-Fr Schultage",
+    schultage_bkom_mo_fr: "Mo-Fr Schultage B-KOM",
+    schultage_gkom_mo_fr: "Mo-Fr Schultage G-KOM"
+  },
+  xbus: {
+    samstag: "Samstag",
+    mo_fr: "Mo-Fr",
+    mo_do: "Mo-Do",
+    ferien_mo_fr: "Mo-Fr Ferien",
+    schultage_mo_fr: "Mo-Fr Schultage",
+    freitag: "Freitag"
+  }
+};
+
+let aktuellerOrt = "lahnau";
+let aktuellerFilter = null;
+
+// Hilfsfunktion Array mischen
+function shuffle(array) {
+  let a = array.slice();
+  for(let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Wagenlisten passend zum Fahrzeugtyp
+function getWagenListe(fahrzeug) {
+  if(fahrzeug === "18m") return wagen18m;
+  if(fahrzeug === "15m") return wagen15m;
+  // alles andere (10m, –, B-KOM, G-KOM...) 12m
+  return wagen12m;
+}
+
+// Fahrer und Wagen eindeutig zuordnen
+function assignFahrerUndWagen(diensteListe) {
+  const namenPool = shuffle(fahrernamen);
+  
+  // Gruppierung Wagen nach Typ
+  const gruppen = {
+    "18m": shuffle(wagen18m),
+    "15m": shuffle(wagen15m),
+    "12m": shuffle(wagen12m)
+  };
+  
+  const result = [];
+  let namenIndex = 0;
+  let zaehler = { "18m":0, "15m":0, "12m":0 };
+  
+  diensteListe.forEach(d => {
+    let ftyp = d.fahrzeug;
+    if(ftyp === "–" || ftyp === "10m") ftyp = "12m";
+    else if(ftyp !== "18m" && ftyp !== "15m" && ftyp !== "12m") ftyp = "12m"; // für B-KOM, G-KOM etc.
+
+    const wagenListe = gruppen[ftyp];
+    const wagenNr = wagenListe[zaehler[ftyp] % wagenListe.length];
+    zaehler[ftyp]++;
+    
+    result.push({
+      dienst: d.dienst,
+      fahrzeug: d.fahrzeug,
+      fahrer: namenPool[namenIndex++ % namenPool.length],
+      wagen: wagenNr
+    });
+  });
+  return result;
+}
+
+// Tabelle rendern
+function renderTable(data) {
+  const tbody = document.querySelector("#dienstTabelle tbody");
+  tbody.innerHTML = "";
+  data.forEach(e => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${e.dienst}</td>
+      <td>${e.fahrzeug}</td>
+      <td>${e.fahrer}</td>
+      <td>${e.wagen}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// Filter-Buttons aktualisieren je nach Ort
+function updateFilterButtons() {
+  aktuellerOrt = document.getElementById("ortSelect").value;
+  aktuellerFilter = null;
+  const filterDiv = document.getElementById("filterButtons");
+  filterDiv.innerHTML = "";
+  const filters = Object.keys(dienste[aktuellerOrt]);
+  filters.forEach(f => {
+    const btn = document.createElement("button");
+    btn.textContent = filterBezeichnungen[aktuellerOrt][f] || f;
+    btn.onclick = () => {
+      aktuellerFilter = f;
+      updateTabelle();
+    };
+    filterDiv.appendChild(btn);
+  });
+  // Automatisch ersten Filter wählen und Tabelle laden
+  if(filters.length > 0) {
+    aktuellerFilter = filters[0];
+    updateTabelle();
+  } else {
+    renderTable([]);
+  }
+}
+
+// Tabelle mit aktuellen Daten aktualisieren
+function updateTabelle() {
+  if(!aktuellerFilter) return renderTable([]);
+  const daten = assignFahrerUndWagen(dienste[aktuellerOrt][aktuellerFilter]);
+  renderTable(daten);
+}
+
+// Fahrer & Wagen neu zuweisen
+function updateFahrer() {
+  updateTabelle();
+}
+
+// Initial Setup
+updateFilterButtons();
+
+</script>
+
 </body>
 </html>
