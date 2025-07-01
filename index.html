@@ -1,105 +1,196 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <title>Dienstplan – OMSI 2 RP</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      background-color: #f2f2f2;
-      padding: 20px;
-    }
-    h1 {
-      color: #333;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-      background-color: #fff;
-    }
-    th, td {
-      padding: 10px;
-      border: 1px solid #ccc;
-      text-align: left;
-    }
-    th {
-      background-color: #0077cc;
-      color: white;
-    }
-    button {
-      margin-top: 20px;
-      padding: 10px 15px;
-      font-size: 16px;
-      background-color: #0077cc;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #005fa3;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dienstplan mit Wagen-Nummern</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; }
+  button { margin: 5px 10px 10px 0; padding: 8px 16px; cursor: pointer; }
+  table { border-collapse: collapse; width: 100%; margin-top: 15px; }
+  th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+  th { background-color: #f4f4f4; }
+</style>
 </head>
 <body>
-  <h1>Dienstplan – OMSI 2 Roleplay</h1>
 
-  <button onclick="aktualisiereBusfahrer()">🔁 Dienste aktualisieren</button>
+<h1>Dienstplan Übersicht mit Wagen-Nummern</h1>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Dienstnummer</th>
-        <th>Zeit</th>
-        <th>Linie</th>
-        <th>Busfahrer</th>
-      </tr>
-    </thead>
-    <tbody id="dienstTabelle">
-      <!-- Inhalte werden per JS eingefügt -->
-    </tbody>
-  </table>
+<div>
+  <button onclick="showDienste('schule')">Mo-Fr Schule</button>
+  <button onclick="showDienste('ferien')">Mo-Fr Ferien</button>
+  <button onclick="showDienste('samstag')">Samstag</button>
+  <button onclick="showDienste('sonntag')">Sonntag</button>
+  <button onclick="updateFahrer()">Busfahrer & Wagen aktualisieren</button>
+</div>
 
-  <script>
-    const dienste = [
-      { dienstnummer: "241/1", zeit: "06:30–13:15", linie: "136, 245" },
-      { dienstnummer: "325/3", zeit: "13:30–20:00", linie: "M37, X10" },
-      { dienstnummer: "502/2", zeit: "20:15–01:30", linie: "X34, N7" },
-      { dienstnummer: "128/5", zeit: "04:45–11:30", linie: "245, 101" }
-    ];
+<table id="dienstTabelle">
+  <thead>
+    <tr>
+      <th>Dienst</th>
+      <th>Fahrzeug</th>
+      <th>Busfahrer</th>
+      <th>Wagennummer</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- Daten kommen hier rein -->
+  </tbody>
+</table>
 
-    const busfahrerNamen = ["Tim", "Luca", "Selin", "Jannis", "Ben", "Mia", "Noah", "Leon"];
+<script>
+// Fahrernamen-Liste
+const fahrernamen = ["Müller", "Schmidt", "Schneider", "Fischer", "Weber", "Meyer", "Wagner", "Koch", "Neumann", "Schulz", "Becker", "Hoffmann", "Krause", "Richter", "Wolf", "Lang", "Schröder", "Schwarz", "Zimmermann", "Braun"];
 
-    function zufaelligNamenVergeben() {
-      const shuffled = [...busfahrerNamen].sort(() => Math.random() - 0.5);
-      return dienste.map((dienst, i) => ({
-        ...dienst,
-        busfahrer: shuffled[i % shuffled.length]
-      }));
-    }
+// Wagengruppen
+const wagen18m = [39,40,41,47,48,49,55,56];
+const wagen15m = [28,29,36,37,38];
+const wagen12m = [];
+for(let i=1; i<=66; i++) {
+  if(!wagen18m.includes(i) && !wagen15m.includes(i)) wagen12m.push(i);
+}
 
-    function zeigeDienste(dienstListe) {
-      const tabelle = document.getElementById("dienstTabelle");
-      tabelle.innerHTML = "";
-      dienstListe.forEach(d => {
-        const row = `<tr>
-          <td>${d.dienstnummer}</td>
-          <td>${d.zeit}</td>
-          <td>${d.linie}</td>
-          <td>${d.busfahrer}</td>
-        </tr>`;
-        tabelle.innerHTML += row;
-      });
-    }
+// Dienste-Daten mit Fahrzeugtyp (10m, 15m, 18m, oder "–" als 12m)
+const dienste = {
+  schule: [
+    { dienst: "4101", fahrzeug: "10m" },
+    { dienst: "4102", fahrzeug: "–" },
+    { dienst: "4201", fahrzeug: "18m" },
+    { dienst: "4202", fahrzeug: "15m" },
+    { dienst: "4203", fahrzeug: "–" },
+    { dienst: "4204", fahrzeug: "–" },
+    { dienst: "4401", fahrzeug: "18m" },
+    { dienst: "4402", fahrzeug: "18m" },
+    { dienst: "4403", fahrzeug: "–" },
+    { dienst: "4404", fahrzeug: "–" },
+    { dienst: "4405", fahrzeug: "–" },
+    { dienst: "4406", fahrzeug: "–" },
+    { dienst: "4407", fahrzeug: "–" },
+    { dienst: "4408", fahrzeug: "–" },
+    { dienst: "4409", fahrzeug: "–" }
+  ],
+  ferien: [
+    { dienst: "4501", fahrzeug: "–" },
+    { dienst: "4502", fahrzeug: "–" },
+    { dienst: "4503", fahrzeug: "–" },
+    { dienst: "4504", fahrzeug: "–" },
+    { dienst: "4505", fahrzeug: "–" },
+    { dienst: "4506", fahrzeug: "–" },
+    { dienst: "4507", fahrzeug: "–" },
+    { dienst: "4508", fahrzeug: "–" },
+    { dienst: "4509", fahrzeug: "–" },
+    { dienst: "4510", fahrzeug: "–" },
+    { dienst: "4601", fahrzeug: "–" },
+    { dienst: "4602", fahrzeug: "10m" },
+    { dienst: "4701", fahrzeug: "–" },
+    { dienst: "4702", fahrzeug: "–" }
+  ],
+  samstag: [
+    { dienst: "4561", fahrzeug: "–" },
+    { dienst: "4562", fahrzeug: "–" },
+    { dienst: "4563", fahrzeug: "–" },
+    { dienst: "4564", fahrzeug: "–" },
+    { dienst: "4565", fahrzeug: "–" },
+    { dienst: "4566", fahrzeug: "–" },
+    { dienst: "4661", fahrzeug: "–" },
+    { dienst: "4662", fahrzeug: "10m" },
+    { dienst: "4761", fahrzeug: "–" }
+  ],
+  sonntag: [
+    { dienst: "4571", fahrzeug: "–" },
+    { dienst: "4572", fahrzeug: "–" },
+    { dienst: "4573", fahrzeug: "–" },
+    { dienst: "4574", fahrzeug: "–" },
+    { dienst: "4671", fahrzeug: "–" },
+    { dienst: "4771", fahrzeug: "–" }
+  ]
+};
 
-    function aktualisiereBusfahrer() {
-      const neueDienste = zufaelligNamenVergeben();
-      zeigeDienste(neueDienste);
-    }
+// Hilfsfunktion: passende Wagenliste je Fahrzeugtyp zurückgeben
+function getWagenListe(fahrzeug) {
+  if(fahrzeug === "18m") return wagen18m;
+  if(fahrzeug === "15m") return wagen15m;
+  // "–" oder "10m" gilt als 12m
+  return wagen12m;
+}
 
-    // Direkt beim Laden einmal ausführen
-    aktualisiereBusfahrer();
-  </script>
+// Hilfsfunktion: Array mischen (Fisher-Yates)
+function shuffle(array) {
+  let a = array.slice();
+  for(let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Für jeden Dienst Fahrer + Wagen eindeutig zuordnen
+function assignFahrerUndWagen(diensteListe) {
+  // Zufällige Fahrernamen mischen und passend zuordnen
+  const namenPool = shuffle(fahrernamen);
+  
+  // Wagen nach Fahrzeugtyp gruppieren, jeweils gemischt
+  // Jeder Dienst bekommt einen Wagen aus passendem Pool
+  const gruppen = {
+    "18m": shuffle(wagen18m),
+    "15m": shuffle(wagen15m),
+    "12m": shuffle(wagen12m)
+  };
+  
+  const result = [];
+  let namenIndex = 0;
+  let zähler = { "18m":0, "15m":0, "12m":0 };
+  
+  diensteListe.forEach(d => {
+    // Fahrzeugtyp normalisieren (– => 12m)
+    let ftyp = d.fahrzeug === "–" ? "12m" : d.fahrzeug;
+    if(ftyp !== "18m" && ftyp !== "15m" && ftyp !== "12m") ftyp = "12m"; // falls z.B. 10m, auch 12m behandeln
+
+    const wagenListe = gruppen[ftyp];
+    const wagenNr = wagenListe[zähler[ftyp] % wagenListe.length];
+    zähler[ftyp]++;
+    
+    result.push({
+      dienst: d.dienst,
+      fahrzeug: d.fahrzeug === "–" ? "12m" : d.fahrzeug,
+      fahrer: namenPool[namenIndex++ % namenPool.length],
+      wagen: wagenNr
+    });
+  });
+  
+  return result;
+}
+
+const tbody = document.querySelector("#dienstTabelle tbody");
+let aktuellerTyp = "schule";
+
+function renderTable(data) {
+  tbody.innerHTML = "";
+  data.forEach(e => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${e.dienst}</td>
+      <td>${e.fahrzeug}</td>
+      <td>${e.fahrer}</td>
+      <td>${e.wagen}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function showDienste(typ) {
+  aktuellerTyp = typ;
+  const daten = assignFahrerUndWagen(dienste[typ]);
+  renderTable(daten);
+}
+
+function updateFahrer() {
+  showDienste(aktuellerTyp);
+}
+
+// Initial
+showDienste(aktuellerTyp);
+</script>
+
 </body>
 </html>
