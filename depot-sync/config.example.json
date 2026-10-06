@@ -1,0 +1,10 @@
+{
+  "apiBaseUrl": "https://DEINE-DIENSTPLAN-DOMAIN",
+  "depotSyncToken": "HIER_TOKEN_EINTRAGEN",
+  "omsiRoot": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\OMSI 2",
+  "mapFolder": "St#U00e4dtedreieck21 V2",
+  "udpPort": 47830,
+  "pollSeconds": 60,
+  "staticObjectFolder": "Sceneryobjects\\ROGISstatic",
+  "staticObjectPattern": "ROGIS_{0}.sco"
+}
