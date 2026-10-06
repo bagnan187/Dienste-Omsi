@@ -207,6 +207,7 @@ rogis_time
     {
         foreach (var file in Directory.EnumerateFiles(mapDir, "*.map"))
         {
+            BackupOnce(file);
             var text = OmsiText.Read(file);
             var lines = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
             var output = new List<string>();
@@ -230,8 +231,15 @@ rogis_time
 
     static void AppendObjects(string mapPath, List<string> blocks)
     {
+        BackupOnce(mapPath);
         var text = OmsiText.Read(mapPath).TrimEnd() + Environment.NewLine + string.Join(Environment.NewLine, blocks) + Environment.NewLine;
         OmsiText.WriteLikeOriginal(mapPath, text);
+    }
+
+    static void BackupOnce(string path)
+    {
+        var bak = path + ".rogis.bak";
+        if (!File.Exists(bak)) File.Copy(path, bak);
     }
 
     static string RelativeToOmsi(string root, string full) =>
