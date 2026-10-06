@@ -40,11 +40,26 @@ record DepotVehicle(
     string? endTime
 );
 
+record SlotReservation(
+    int from,
+    int to,
+    string? vehicle,
+    string? kind
+);
+
+record SlotConflict(
+    string slotId,
+    SlotReservation? a,
+    SlotReservation? b
+);
+
 record DepotDay(
     bool ok,
     string date,
     int planVersion,
     int slotCount,
     Dictionary<string, object>? depotOccupancy,
+    Dictionary<string, SlotReservation[]>? slotReservations,
+    SlotConflict[]? slotConflicts,
     DepotVehicle[] vehicles
 );
