@@ -78,6 +78,14 @@ static class Program
         var day = JsonSerializer.Deserialize<DepotDay>(dayJson, Json)
                   ?? throw new Exception("Depot-Tagesbelegung konnte nicht gelesen werden.");
 
+        if (day.slotConflicts is { Length: > 0 })
+        {
+            var detail = string.Join(", ", day.slotConflicts.Select(x => x.slotId).Distinct(StringComparer.OrdinalIgnoreCase));
+            throw new Exception("Static-Hofbelegung NICHT geschrieben: Stellplatzkonflikt(e) laut Website: " + detail);
+        }
+
+        ValidateReservations(day);
+
         await File.WriteAllTextAsync(Path.Combine(AppContext.BaseDirectory, "depot-day.json"), dayJson, Encoding.UTF8);
 
         if (buildRuntime)
@@ -89,4 +97,18 @@ static class Program
         Console.WriteLine($"{DateTime.Now:HH:mm:ss}: {slots.Count} Stellplaetze synchronisiert, {day.vehicles.Length} Fahrzeuge verarbeitet.");
         return buildRuntime;
     }
+    static void ValidateReservations(DepotDay day)
+    {
+        if (day.slotReservations is null) return;
+        foreach (var kv in day.slotReservations)
+        {
+            var list = (kv.Value ?? Array.Empty<SlotReservation>()).OrderBy(x => x.from).ToArray();
+            for (var i = 1; i < list.Length; i++)
+            {
+                if (Math.Max(list[i - 1].from, list[i].from) < Math.Min(list[i - 1].to, list[i].to))
+                    throw new Exception($"Static-Hofbelegung NICHT geschrieben: {kv.Key} ist gleichzeitig fuer {list[i - 1].vehicle} und {list[i].vehicle} reserviert.");
+            }
+        }
+    }
+
 }
