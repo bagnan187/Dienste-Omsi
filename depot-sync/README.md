@@ -11,3 +11,13 @@ Der Client verbindet die im OMSI-Editor gesetzten ROGIS-Stellplatzmarker mit der
 5. Das openOMSI-Lua-Plugin meldet lokal Spielzustand/Dienstwechsel per UDP und stößt eine Aktualisierung an.
 
 Die Static-Bus-Erzeugung kommt als nächster Baustein und nutzt dieselbe `depot-day.json`.
+
+## Static-Bus-Verknüpfung
+
+Die Wagennummer ist der gemeinsame Schlüssel. `static-models.json` ordnet z. B. `1516` einer Static-.sco zu. Die Tagesbelegung der Website liefert dieselbe `vehicleNumber`, sodass der Client daraus automatisch Wagen + Stellplatz + Modell zusammensetzt.
+
+Beispiel:
+
+```json
+{"1516":"Sceneryobjects\\\\ROGISstatic\\\\1516.sco"}
+```
