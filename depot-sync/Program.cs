@@ -42,21 +42,25 @@ static class Program
                 {
                     var r = await udp.ReceiveAsync();
                     Console.WriteLine("openOMSI: " + Encoding.UTF8.GetString(r.Buffer));
-                    await SyncAll(cfg, mapDir, http);
+                    await SyncAll(cfg, mapDir, http, buildRuntime: false);
                 }
                 catch (Exception ex) { Console.WriteLine("UDP: " + ex.Message); }
             }
         });
 
+        var runtimeBuilt = false;
         while (true)
         {
-            try { await SyncAll(cfg, mapDir, http); }
+            try
+            {
+                runtimeBuilt = await SyncAll(cfg, mapDir, http, buildRuntime: !runtimeBuilt) || runtimeBuilt;
+            }
             catch (Exception ex) { Console.WriteLine("Sync: " + ex.Message); }
             await Task.Delay(TimeSpan.FromSeconds(Math.Max(15, cfg.pollSeconds)));
         }
     }
 
-    static async Task SyncAll(Config cfg, string mapDir, HttpClient http)
+    static async Task<bool> SyncAll(Config cfg, string mapDir, HttpClient http, bool buildRuntime = false)
     {
         var slots = OmsiSlotScanner.Scan(mapDir);
 
@@ -76,8 +80,13 @@ static class Program
 
         await File.WriteAllTextAsync(Path.Combine(AppContext.BaseDirectory, "depot-day.json"), dayJson, Encoding.UTF8);
 
-        StaticRuntime.Build(cfg, mapDir, slots, day);
+        if (buildRuntime)
+        {
+            StaticRuntime.Build(cfg, mapDir, slots, day);
+            Console.WriteLine("Static-Hofbelegung fuer diesen OMSI-Start erzeugt.");
+        }
 
         Console.WriteLine($"{DateTime.Now:HH:mm:ss}: {slots.Count} Stellplaetze synchronisiert, {day.vehicles.Length} Fahrzeuge verarbeitet.");
+        return buildRuntime;
     }
 }
